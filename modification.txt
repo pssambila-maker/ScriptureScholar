@@ -1,0 +1,44 @@
+secure your ScriptureScholar app
+implement this code
+import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+
+const auth = getAuth();
+const provider = new GoogleAuthProvider();
+
+// Function to trigger Google Login
+const loginWithGoogle = async () => {
+  try {
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+    console.log("Logged in as:", user.displayName);
+  } catch (error) {
+    console.error("Login failed:", error.message);
+  }
+};
+
+Firestore Security Rules
+This code ensures that standard users can only see their own "Deep Study" history, but anyone you manually label as an admin in the database can see everything.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if the user is an admin
+    function isAdmin() {
+      return request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Rules for the Users collection
+    match /users/{userId} {
+      // Users can read/write their own profile; Admins can see all profiles
+      allow read, update: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow create: if request.auth != null;
+      
+      // Rules for the 'history' sub-collection (where Bible studies are saved)
+      match /history/{studyId} {
+        allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      }
+    }
+  }
+}
+
+generate the "Admin Dashboard" UI code so you can view all the scripture studies in one list
