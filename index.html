@@ -73,6 +73,99 @@
           padding: 8px;
           font-size: 18px;
         }
+        /* iOS Install Prompt */
+        .ios-install-prompt {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: white;
+          padding: 20px;
+          padding-bottom: calc(20px + env(safe-area-inset-bottom));
+          display: none;
+          flex-direction: column;
+          z-index: 9999;
+          box-shadow: 0 -4px 30px rgba(0,0,0,0.15);
+          border-top-left-radius: 20px;
+          border-top-right-radius: 20px;
+        }
+        .ios-install-prompt.show { display: flex; }
+        .ios-install-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 16px;
+        }
+        .ios-install-title {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .ios-install-close {
+          background: #f1f5f9;
+          border: none;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          font-size: 18px;
+          color: #64748b;
+          cursor: pointer;
+        }
+        .ios-install-steps {
+          background: #f8fafc;
+          border-radius: 12px;
+          padding: 16px;
+        }
+        .ios-install-step {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 0;
+          border-bottom: 1px solid #e2e8f0;
+        }
+        .ios-install-step:last-child { border-bottom: none; }
+        .ios-step-num {
+          width: 24px;
+          height: 24px;
+          background: #4f46e5;
+          color: white;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+          font-weight: 700;
+          flex-shrink: 0;
+        }
+        .ios-step-text {
+          font-size: 14px;
+          color: #334155;
+        }
+        .ios-step-text strong { color: #1e293b; }
+        .ios-share-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 24px;
+          height: 24px;
+          background: #007AFF;
+          color: white;
+          border-radius: 6px;
+          font-size: 14px;
+          vertical-align: middle;
+          margin: 0 4px;
+        }
+        .ios-install-arrow {
+          position: absolute;
+          bottom: -10px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 0;
+          height: 0;
+          border-left: 12px solid transparent;
+          border-right: 12px solid transparent;
+          border-top: 12px solid white;
+        }
     </style>
 
     <script type="importmap">
@@ -92,7 +185,7 @@
 <body class="bg-slate-50 text-slate-900">
     <div id="root"></div>
 
-    <!-- PWA Install Banner -->
+    <!-- PWA Install Banner (Android/Desktop) -->
     <div id="pwa-install-banner" class="pwa-install-banner">
       <div style="display: flex; align-items: center; gap: 12px;">
         <img src="/icons/icon.svg" alt="" style="width: 40px; height: 40px; border-radius: 8px;">
@@ -104,6 +197,37 @@
       <div style="display: flex; align-items: center; gap: 8px;">
         <button class="pwa-install-btn" id="pwa-install-btn">Install</button>
         <button class="pwa-dismiss-btn" id="pwa-dismiss-btn">&times;</button>
+      </div>
+    </div>
+
+    <!-- iOS Install Prompt -->
+    <div id="ios-install-prompt" class="ios-install-prompt">
+      <div class="ios-install-header">
+        <div class="ios-install-title">
+          <img src="/icons/icon.svg" alt="" style="width: 48px; height: 48px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+          <div>
+            <div style="font-weight: 700; font-size: 16px; color: #1e293b;">Install Scripture Scholar</div>
+            <div style="font-size: 12px; color: #64748b;">Add to your home screen</div>
+          </div>
+        </div>
+        <button class="ios-install-close" id="ios-install-close">&times;</button>
+      </div>
+      <div class="ios-install-steps">
+        <div class="ios-install-step">
+          <span class="ios-step-num">1</span>
+          <span class="ios-step-text">Tap the <strong>Share</strong> button <span class="ios-share-icon"><i class="fa-solid fa-arrow-up-from-bracket" style="font-size: 12px;"></i></span> at the bottom of Safari</span>
+        </div>
+        <div class="ios-install-step">
+          <span class="ios-step-num">2</span>
+          <span class="ios-step-text">Scroll down and tap <strong>"Add to Home Screen"</strong></span>
+        </div>
+        <div class="ios-install-step">
+          <span class="ios-step-num">3</span>
+          <span class="ios-step-text">Tap <strong>"Add"</strong> in the top right corner</span>
+        </div>
+      </div>
+      <div style="text-align: center; margin-top: 16px; padding-bottom: 8px;">
+        <span style="font-size: 11px; color: #94a3b8;">↓ Look for the share button below ↓</span>
       </div>
     </div>
 
@@ -172,6 +296,49 @@
         console.log('PWA was installed');
         installBanner.classList.remove('show');
         deferredPrompt = null;
+      });
+
+      // iOS Install Prompt
+      const iosPrompt = document.getElementById('ios-install-prompt');
+      const iosCloseBtn = document.getElementById('ios-install-close');
+
+      // Detect iOS Safari
+      function isIOS() {
+        return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      }
+
+      function isInStandaloneMode() {
+        return window.matchMedia('(display-mode: standalone)').matches ||
+               window.navigator.standalone === true;
+      }
+
+      function isSafari() {
+        return /Safari/.test(navigator.userAgent) && !/Chrome|CriOS|FxiOS/.test(navigator.userAgent);
+      }
+
+      // Show iOS prompt if on iOS Safari and not already installed
+      if (isIOS() && isSafari() && !isInStandaloneMode()) {
+        const iosDismissed = localStorage.getItem('ios-install-dismissed');
+        // Show after 3 seconds if not dismissed in last 7 days
+        if (!iosDismissed || (Date.now() - parseInt(iosDismissed)) > 7 * 24 * 60 * 60 * 1000) {
+          setTimeout(() => {
+            iosPrompt.classList.add('show');
+          }, 3000);
+        }
+      }
+
+      // Close iOS prompt
+      iosCloseBtn.addEventListener('click', () => {
+        iosPrompt.classList.remove('show');
+        localStorage.setItem('ios-install-dismissed', Date.now());
+      });
+
+      // Also close when tapping outside
+      iosPrompt.addEventListener('click', (e) => {
+        if (e.target === iosPrompt) {
+          iosPrompt.classList.remove('show');
+          localStorage.setItem('ios-install-dismissed', Date.now());
+        }
       });
     </script>
 </body>
