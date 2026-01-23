@@ -11,6 +11,7 @@ You MUST return your response as valid JSON matching this exact structure (no ma
 {
   "reference": "the passage reference",
   "translation": "the translation used",
+  "scriptureText": "the full text of the scripture passage in the specified translation",
   "summary": "a comprehensive summary of the passage",
   "context": {
     "author": "who wrote this book",

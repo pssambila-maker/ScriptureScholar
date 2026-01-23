@@ -677,6 +677,22 @@ const StudyDetail = () => {
           </div>
         </header>
 
+        {/* Scripture Text */}
+        {study.analysis.scriptureText && (
+          <section className="bg-gradient-to-br from-amber-50 to-orange-50 p-8 rounded-3xl border-2 border-amber-200 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-40 h-40 bg-amber-100 rounded-full -mr-20 -mt-20 opacity-50"></div>
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-orange-100 rounded-full -ml-12 -mb-12 opacity-50"></div>
+            <h2 className="text-xl font-black mb-6 flex items-center text-amber-800 uppercase tracking-tighter relative z-10">
+              <i className="fa-solid fa-book-bible mr-3 text-amber-600"></i> Scripture Text
+              <span className="ml-auto text-[10px] font-black bg-amber-200 text-amber-700 px-3 py-1 rounded-full">{study.translation}</span>
+            </h2>
+            <blockquote className="relative z-10 border-l-4 border-amber-400 pl-6 py-2">
+              <p className="text-slate-800 text-xl leading-relaxed font-serif italic whitespace-pre-wrap">{study.analysis.scriptureText}</p>
+            </blockquote>
+            <p className="text-amber-600 font-black text-xs uppercase tracking-widest mt-4 text-right relative z-10">— {study.reference}</p>
+          </section>
+        )}
+
         <section className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm leading-relaxed relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -mr-16 -mt-16 opacity-50"></div>
           <h2 className="text-xl font-black mb-6 flex items-center text-slate-800 uppercase tracking-tighter relative z-10">

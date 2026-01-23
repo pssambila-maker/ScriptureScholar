@@ -23,6 +23,7 @@ export interface CrossReference {
 export interface StudyAnalysis {
   reference: string;
   translation: string;
+  scriptureText: string;
   summary: string;
   context: StudyContext;
   keyThemes: string[];
