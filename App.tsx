@@ -210,6 +210,72 @@ const StudyService = {
 const AuthContext = createContext<{ user: User | null; loading: boolean }>({ user: null, loading: true });
 const useAuth = () => useContext(AuthContext);
 
+// Toast Context for notifications
+type ToastType = 'success' | 'error' | 'info';
+interface Toast {
+  id: number;
+  message: string;
+  type: ToastType;
+}
+const ToastContext = createContext<{ showToast: (message: string, type?: ToastType) => void }>({ showToast: () => {} });
+const useToast = () => useContext(ToastContext);
+
+// Toast Provider Component
+const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [toasts, setToasts] = useState<Toast[]>([]);
+
+  const showToast = (message: string, type: ToastType = 'success') => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 3000);
+  };
+
+  const removeToast = (id: number) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
+
+  return (
+    <ToastContext.Provider value={{ showToast }}>
+      {children}
+      {/* Toast Container */}
+      <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3 pointer-events-none">
+        {toasts.map(toast => (
+          <div
+            key={toast.id}
+            className={`pointer-events-auto flex items-center gap-3 px-5 py-4 rounded-2xl shadow-2xl transform transition-all duration-300 animate-in slide-in-from-right-5 fade-in ${
+              toast.type === 'success' ? 'bg-emerald-600 text-white' :
+              toast.type === 'error' ? 'bg-red-600 text-white' :
+              'bg-indigo-600 text-white'
+            }`}
+            style={{ minWidth: '280px' }}
+          >
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+              toast.type === 'success' ? 'bg-emerald-500' :
+              toast.type === 'error' ? 'bg-red-500' :
+              'bg-indigo-500'
+            }`}>
+              <i className={`fa-solid ${
+                toast.type === 'success' ? 'fa-check' :
+                toast.type === 'error' ? 'fa-xmark' :
+                'fa-info'
+              } text-sm`}></i>
+            </div>
+            <span className="font-bold text-sm flex-1">{toast.message}</span>
+            <button
+              onClick={() => removeToast(toast.id)}
+              className="text-white/70 hover:text-white transition ml-2"
+            >
+              <i className="fa-solid fa-times"></i>
+            </button>
+          </div>
+        ))}
+      </div>
+    </ToastContext.Provider>
+  );
+};
+
 // Guest Trial Helper - tracks if guest has used their free trial
 const GuestTrialService = {
   hasUsedTrial(): boolean {
@@ -546,6 +612,7 @@ const Landing = () => {
 const StudyDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const [study, setStudy] = useState<SavedStudy | null>(null);
   const [notes, setNotes] = useState('');
@@ -572,7 +639,7 @@ const StudyDetail = () => {
   const saveNotes = async () => {
     if (!id) return;
     await StudyService.update(user?.uid || 'guest', id, { userNotes: notes });
-    alert('Reflections saved to your library.');
+    showToast('Reflection saved successfully!', 'success');
   };
 
   const handleChat = async (e: React.FormEvent) => {
@@ -756,6 +823,7 @@ const StudyDetail = () => {
 
 const History = () => {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [studies, setStudies] = useState<SavedStudy[]>([]);
   const [loading, setLoading] = useState(true);
   const [clearing, setClearing] = useState(false);
@@ -775,8 +843,9 @@ const History = () => {
     try {
       await StudyService.clearAll(user?.uid || 'guest');
       setStudies([]);
+      showToast('All studies cleared successfully', 'success');
     } catch (e) {
-      alert('Failed to clear history. Please try again.');
+      showToast('Failed to clear history. Please try again.', 'error');
     } finally {
       setClearing(false);
     }
@@ -1143,30 +1212,32 @@ const App = () => {
 
   return (
     <AuthContext.Provider value={{ user, loading }}>
-      <HashRouter>
-        <div className="min-h-screen bg-slate-50 flex flex-col selection:bg-indigo-100 selection:text-indigo-900">
-          <Navbar />
-          <main className="flex-grow">
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/" element={<Landing />} />
-              <Route path="/history" element={<AuthRequiredRoute><History /></AuthRequiredRoute>} />
-              <Route path="/study/:id" element={<StudyDetail />} />
-              <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-              <Route path="*" element={<Navigate to="/" />} />
-            </Routes>
-          </main>
-          <footer className="py-12 bg-white border-t border-slate-100 text-center">
-            <p className="text-slate-300 font-black text-[9px] uppercase tracking-[0.3em] mb-4 italic">Collaborative Scholarship with Holy Scriptures</p>
-            <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">&copy; {new Date().getFullYear()} Scripture Scholar Bible App</p>
-            <div className="flex justify-center space-x-6 mt-6 opacity-30">
-              <i className="fa-brands fa-google"></i>
-              <i className="fa-solid fa-cloud"></i>
-              <i className="fa-solid fa-brain"></i>
-            </div>
-          </footer>
-        </div>
-      </HashRouter>
+      <ToastProvider>
+        <HashRouter>
+          <div className="min-h-screen bg-slate-50 flex flex-col selection:bg-indigo-100 selection:text-indigo-900">
+            <Navbar />
+            <main className="flex-grow">
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/" element={<Landing />} />
+                <Route path="/history" element={<AuthRequiredRoute><History /></AuthRequiredRoute>} />
+                <Route path="/study/:id" element={<StudyDetail />} />
+                <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+                <Route path="*" element={<Navigate to="/" />} />
+              </Routes>
+            </main>
+            <footer className="py-12 bg-white border-t border-slate-100 text-center">
+              <p className="text-slate-300 font-black text-[9px] uppercase tracking-[0.3em] mb-4 italic">Collaborative Scholarship with Holy Scriptures</p>
+              <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">&copy; {new Date().getFullYear()} Scripture Scholar Bible App</p>
+              <div className="flex justify-center space-x-6 mt-6 opacity-30">
+                <i className="fa-brands fa-google"></i>
+                <i className="fa-solid fa-cloud"></i>
+                <i className="fa-solid fa-brain"></i>
+              </div>
+            </footer>
+          </div>
+        </HashRouter>
+      </ToastProvider>
     </AuthContext.Provider>
   );
 };
